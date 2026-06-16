@@ -35,6 +35,8 @@ architecture fsm of internal_fsm is
     -- S1 : decode the instruction and set the control signals accordingly
     -- S2 : load b_address into addsub, set addsub to correct operation
     -- S3 : load G into R[a_address]
+    -- S4 : wait 2 cycles
+    -- S5 : wait 1 cycles
     signal instruction_bits : std_logic_vector(2 downto 0);
     signal address_a_bits : std_logic_vector(2 downto 0);
     signal address_b_bits : std_logic_vector(2 downto 0);
@@ -108,6 +110,10 @@ begin
                 G_select <= '1';
                 next_state <= S0;
                 done <= '1';
+            when S4 =>
+                next_state <= S5;
+            when S5 =>
+                next_state <= S0;
             when others =>
                 next_state <= S0;
                 done <= '1';
