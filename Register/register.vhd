@@ -1,7 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
-entity register is
+entity reg_unit is
     generic(
         WIDTH : integer := 8
     );
@@ -12,9 +12,9 @@ entity register is
         q : out std_logic_vector(WIDTH - 1 downto 0);
         en : in std_logic
     );
-end register;
+end reg_unit;
 
-architecture Behavioral of register is
+architecture Behavioral of reg_unit is
 begin
     process(clk, rst)
     begin
