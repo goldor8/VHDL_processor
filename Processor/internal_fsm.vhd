@@ -21,13 +21,16 @@ entity internal_fsm is
         addsub : out std_logic;
         
         IR_en : out std_logic;
-        IR : in std_logic_vector(WIDTH - 1 downto 0)
+        IR : in std_logic_vector(WIDTH - 1 downto 0);
+
+        done : out std_logic
     );
 end internal_fsm;
 
 architecture fsm of internal_fsm is
     type state_type is (S0, S1, S2, S3, S4, S5, S6, S7);
     signal state : state_type;
+    signal next_state : state_type;
     -- S0 : store the instruction in the IR
     -- S1 : decode the instruction and set the control signals accordingly
     -- S2 : load b_address into addsub, set addsub to correct operation
@@ -44,69 +47,71 @@ begin
     begin
         if rst = '1' then
             state <= S0;
-            R_en <= '0';
-            R_address <= "000";
-            
-            R_select <= "000";
-            DIN_select <= '0';
-            G_select <= '0';
-
-            A_en <= '0';
-            G_en <= '0';
-            addsub <= '0';
-            IR_en <= '0';
         elsif rising_edge(clk) then
-            R_en <= '0';
-            R_address <= "000";
-            
-            R_select <= "000";
-            DIN_select <= '0';
-            G_select <= '0';
-
-            A_en <= '0';
-            G_en <= '0';
-            addsub <= '0';
-            IR_en <= '1';
-            case state is
-                when S0 =>
-                    IR_en <= '0';
-                    state <= S1;
-                when S1 =>
-                    case instruction_bits is
-                        when "000" => -- MOVE
-                            R_select <= address_b_bits;
-                            R_en <= '1';
-                            R_address <= address_a_bits;
-                            DIN_select <= '1';
-                            state <= S0;
-                        when "001" => -- MOVEI, move immediate value to register
-                            R_en <= '1';
-                            R_address <= address_a_bits;
-                            DIN_select <= '1';
-                            state <= S0;
-                        when "010" or "011" => -- ADD/SUB, load R[address_a] into A, route R[address_b] into addsub, store result in G
-                            IR_en <= '0'; -- keep the instruction in the IR for the next cycle
-                            R_select <= address_a_bits;
-                            A_en <= '1';
-                            state <= S2;
-                        when others =>
-                            state <= S0;
-                    end case;
-                when S2 =>
-                    IR_en <= '0';
-                    R_select <= address_b_bits;
-                    addsub <= '1' when instruction_bits(0) = '0' else '0';
-                    G_en <= '1';
-                    state <= S3;
-                when S3 =>
-                    R_en <= '1';
-                    R_address <= address_a_bits;
-                    G_select <= '1';
-                    state <= S0;
-                when others =>
-                    state <= S0;
-            end case;
+            state <= next_state;
         end if;
+    end process;
+
+    process(state, instruction_bits, address_a_bits, address_b_bits)
+    begin
+        R_en <= '0';
+        R_address <= "000";
+        
+        R_select <= "000";
+        DIN_select <= '0';
+        G_select <= '0';
+
+        A_en <= '0';
+        G_en <= '0';
+        addsub <= '0';
+        IR_en <= '0';
+        done <= '0';
+        case state is
+            when S0 => -- Fetch the instruction and store it in the IR
+                IR_en <= '1';
+                next_state <= S1;
+            when S1 =>
+                case instruction_bits is
+                    when "000" => -- MOVE
+                        R_select <= address_b_bits;
+                        R_en <= '1';
+                        R_address <= address_a_bits;
+                        DIN_select <= '1';
+                        next_state <= S0;
+                        done <= '1';
+                    when "001" => -- MOVEI, move immediate value to register
+                        R_en <= '1';
+                        R_address <= address_a_bits;
+                        DIN_select <= '1';
+                        next_state <= S0;
+                        done <= '1';
+                    when "010" => -- ADD/SUB, load R[address_a] into A, route R[address_b] into addsub, store result in G
+                        R_select <= address_a_bits;
+                        A_en <= '1';
+                        next_state <= S2;
+                    when "011" =>
+                        R_select <= address_a_bits;
+                        A_en <= '1';
+                        next_state <= S2;
+                    when others =>
+                        next_state <= S0;
+                        done <= '1';
+                end case;
+            when S2 =>
+                R_select <= address_b_bits;
+                addsub <= '1' when instruction_bits(0) = '0' else '0';
+                G_en <= '1';
+                next_state <= S3;
+            when S3 =>
+                R_en <= '1';
+                R_address <= address_a_bits;
+                G_select <= '1';
+                next_state <= S0;
+                done <= '1';
+            when others =>
+                next_state <= S0;
+                done <= '1';
+        end case;
     end process;
 end fsm;
 

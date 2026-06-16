@@ -10,7 +10,8 @@ entity processor is
         rst : in std_logic;
         DIN : in std_logic_vector(WIDTH - 1 downto 0);
         bus_data : out std_logic_vector(WIDTH - 1 downto 0);
-        run : in std_logic
+        run : in std_logic;
+        done : out std_logic
     );
 end processor;
 
@@ -79,7 +80,9 @@ architecture Behavioral of processor is
             addsub : out std_logic;
             
             IR_en : out std_logic;
-            IR : in std_logic_vector(WIDTH - 1 downto 0)
+            IR : in std_logic_vector(WIDTH - 1 downto 0);
+
+            done : out std_logic
         );
     end component;
 
@@ -120,7 +123,7 @@ architecture Behavioral of processor is
     end component;
 
     signal R0, R1, R2, R3, R4, R5, R6, R7 : std_logic_vector(WIDTH - 1 downto 0);
-    signal A, G, IR : std_logic_vector(WIDTH - 1 downto 0);
+    signal A, G, IR, addsub_result : std_logic_vector(WIDTH - 1 downto 0);
 
     signal R_select : std_logic_vector(2 downto 0);
     signal DIN_select, G_select : std_logic;
@@ -146,14 +149,14 @@ begin
         port map(clk => clk, rst => rst, d => bus_data_internal, q => A, en => A_en);
     G_reg : reg_unit
         generic map(WIDTH => WIDTH)
-        port map(clk => clk, rst => rst, d => bus_data_internal, q => G, en => G_en);
+        port map(clk => clk, rst => rst, d => addsub_result, q => G, en => G_en);
     addsub_unit : internal_addsub
         generic map(WIDTH => WIDTH)
-        port map(A_in => A, B_in => bus_data_internal, addsub => addsub, result_out => G);
+        port map(A_in => A, B_in => bus_data_internal, addsub => addsub, result_out => addsub_result);
     
     IR_reg : reg_unit
         generic map(WIDTH => WIDTH)
-        port map(clk => clk, rst => rst, d => bus_data_internal, q => IR, en => IR_en);
+        port map(clk => clk, rst => rst, d => DIN, q => IR, en => IR_en);
     
     mux : internal_multiplexer
         generic map(WIDTH => WIDTH)
@@ -167,7 +170,8 @@ begin
                  R_select => R_select, DIN_select => DIN_select, G_select => G_select,
                  R_en => R_en, R_address => R_address,
                  A_en => A_en, G_en => G_en, addsub => addsub,
-                 IR_en => IR_en, IR => IR);
+                 IR_en => IR_en, IR => IR,
+                 done => done);
     
     bus_data <= bus_data_internal;
 end Behavioral;

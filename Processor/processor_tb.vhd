@@ -11,6 +11,7 @@ architecture Behavioral of processor_tb is
     signal DIN : std_logic_vector(WIDTH - 1 downto 0) := (others => '0');
     signal bus_data : std_logic_vector(WIDTH - 1 downto 0);
     signal run : std_logic := '0';
+    signal done : std_logic := '0';
 
     component processor is
         generic(
@@ -21,39 +22,44 @@ architecture Behavioral of processor_tb is
             rst : in std_logic;
             DIN : in std_logic_vector(WIDTH - 1 downto 0);
             bus_data : out std_logic_vector(WIDTH - 1 downto 0);
-            run : in std_logic
+            run : in std_logic;
+            done : out std_logic
         );
     end component;
 
 begin
     proc : processor
         generic map(WIDTH => WIDTH)
-        port map(clk => clk, rst => rst, DIN => DIN, bus_data => bus_data, run => run);
+        port map(clk => clk, rst => rst, DIN => DIN, bus_data => bus_data, run => run, done => done);
 
+    stim_proc: process
+    begin
+        rst <= '1';
+        wait until rising_edge(clk);
+        rst <= '0';
+        wait until done = '1';
+        wait until rising_edge(clk);
+        DIN <= "001000000"; --movei to R0
+        wait until rising_edge(clk);
+        DIN <= "000000001"; -- Load R0 with 1
+        wait until done = '1';
+        wait until rising_edge(clk);
+        DIN <= "001001000"; --movei to R1
+        wait until rising_edge(clk);
+        DIN <= "000000010"; -- Load R1 with 2
+        wait until done = '1';
+        wait until rising_edge(clk);
+        DIN <= "010000001"; --add R0 and R1
+        wait;
+    end process;
+
+    
     clk_process : process
     begin
         clk <= '0';
         wait for 5 ns;
         clk <= '1';
         wait for 5 ns;
-    end process;
-
-    stim_proc: process
-    begin
-        rst <= '1';
-        wait for 10 ns;
-        rst <= '0';
-        wait for 10 ns;
-        DIN <= "001000000"; --movei to R0
-        wait for 10 ns;
-        DIN <= "000000001"; -- Load R0 with 1
-        wait for 10 ns;
-        DIN <= "001000001"; --movei to R1
-        wait for 10 ns;
-        DIN <= "000000010"; -- Load R1 with 2
-        wait for 10 ns;
-        DIN <= "010000001"; --add R0 and R1
-        wait;
     end process;
 end Behavioral;
         
