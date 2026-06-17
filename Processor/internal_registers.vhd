@@ -11,6 +11,7 @@ entity internal_reg_units is
         
         en : in std_logic;
         R_address : in std_logic_vector(2 downto 0);
+        R7_count : in std_logic;
 
         R0_in : in std_logic_vector(WIDTH - 1 downto 0);
         R1_in : in std_logic_vector(WIDTH - 1 downto 0);
@@ -47,6 +48,21 @@ architecture Behavioral of internal_reg_units is
         );
     end component;
 
+    component register_counter is
+        generic(
+            WIDTH : integer := 8
+        );
+        port(
+            clk : in std_logic;
+            rst : in std_logic;
+            q : out std_logic_vector(WIDTH - 1 downto 0);
+            d : in std_logic_vector(WIDTH - 1 downto 0);
+            en : in std_logic;
+            count : in std_logic
+        );
+    end component;
+
+
     signal R0_en, R1_en, R2_en, R3_en, R4_en, R5_en, R6_en, R7_en : std_logic;
 begin
     R0 : reg_unit
@@ -70,9 +86,9 @@ begin
     R6 : reg_unit
         generic map(WIDTH => WIDTH)
         port map(clk => clk, rst => rst, d => R6_in, q => R6_out, en => R6_en);
-    R7 : reg_unit
+    R7 : register_counter
         generic map(WIDTH => WIDTH)
-        port map(clk => clk, rst => rst, d => R7_in, q => R7_out, en => R7_en);
+        port map(clk => clk, rst => rst, d => R7_in, q => R7_out, en => R7_en, count => R7_count);
 
     process(en, R_address)
     begin
